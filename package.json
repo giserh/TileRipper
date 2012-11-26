@@ -1,0 +1,9 @@
+{
+  "name": "TileRipper",
+  "version": "0.0.1",
+  "dependencies": { 
+    "argparse": ">= 0.1.7",
+    "underscore": ">= 1.4.2",
+    "async":  ">= 0.1.22"
+  }
+}
