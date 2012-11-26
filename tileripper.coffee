@@ -135,18 +135,8 @@ parser.addArgument [ '-y', '--southlat' ], { help: 'Southernmost decimal latitud
 parser.addArgument [ '-Y', '--northlat' ], { help: 'Northernmost decimal latitude', metavar: "LATITUDE", required: true }
 parser.addArgument [ '-c', '--concurrentops' ], { help: 'Max number of concurrent tile requests', metavar: "REQUESTS", defaultValue: 8 }
 
-
 args = parser.parseArgs()
 console.log args
-
-console.log mapSize 1
-console.log "Ground Resolution:", groundResolution 34.0, 1
-console.log "latLongToPixelXY", latLongToPixelXY 34.0, -119.0, 1
-console.log "pixelXYToLatLong", pixelXYToLatLong 87.25, 205, 1
-console.log "pixelXYToTileXY", pixelXYToTileXY 87.25, 405
-tilexy = pixelXYToTileXY 87.25, 405
-console.log "tileXYToPixelXY", tileXYToPixelXY tilexy[0], tilexy[1]
-
 
 args.westlong = parseFloat args.westlong
 args.eastlong = parseFloat args.eastlong
@@ -154,7 +144,6 @@ args.northlat = parseFloat args.northlat
 args.southlat = parseFloat args.southlat
 args.minzoom = parseInt args.minzoom
 args.maxzoom = parseInt args.maxzoom
-console.log args
 
 zoomLevel = args.minzoom
 totalTiles = 0
@@ -166,14 +155,11 @@ while zoomLevel <= args.maxzoom
   sw = latLongToPixelXY args.southlat, args.westlong,  zoomLevel
   se = latLongToPixelXY args.southlat, args.eastlong,  zoomLevel
 
-  #console.log "#{nw} #{ne} #{sw} #{se}"
-
   nwtile = pixelXYToTileXY nw[0], nw[1]
   netile = pixelXYToTileXY ne[0], ne[1]
   swtile = pixelXYToTileXY sw[0], sw[1]
   setile = pixelXYToTileXY se[0], se[1]
 
-  console.log "#{nwtile} #{netile} #{swtile} #{setile}"
   ntiles = (setile[0] - nwtile[0] + 1) * (setile[1] - nwtile[1] + 1)
   totalTiles += ntiles
   console.log ntiles 
@@ -182,11 +168,25 @@ while zoomLevel <= args.maxzoom
 
 console.log "Total Tiles: #{totalTiles}"
 
-zoomLevel = args.minzoom
 
+
+
+queue = async.queue (task, callback) ->
+    bbox = boundingBoxForTile task.xtile, task.ytile, task.zoomLevel
+    uri = args.mapservice
+    uri = uri + "?bbox=#{bbox[0]},#{bbox[1]},#{bbox[2]},#{bbox[3]}"
+    uri = uri + "&bboxSR=3857&layers=3&size=256,256&imageSR=3857"
+    uri = uri + "&format=png&transparent=false&dpi=96&f=image"
+    console.log uri
+    callback()
+  , args.concurrentops
+
+queue.drain = () ->
+  console.log "Queue drained of all tasks"
+
+zoomLevel = args.minzoom
 while zoomLevel <= args.maxzoom
   console.log "Tiling level #{zoomLevel}"
-
 
   nw = latLongToPixelXY args.northlat, args.westlong,  zoomLevel
   ne = latLongToPixelXY args.northlat, args.eastlong,  zoomLevel
@@ -197,47 +197,13 @@ while zoomLevel <= args.maxzoom
   swtile = pixelXYToTileXY sw[0], sw[1]
   setile = pixelXYToTileXY se[0], se[1]
 
-  longMetersPerTile = (XMAX - XMIN) / (2 << (zoomLevel-1))
-  latMetersPerTile = (YMAX - YMIN) / (2 << (zoomLevel-1))
-
-  minXMeters = 0
-  if args.westlong > 0
-    minXMeters = (XMAX - XMIN) /2 + (nwtile[0] * longMetersPerTile)
-  else if args.westlong <= 0
-    minXMeters = 0 - (XMAX - XMIN)/2 + (nwtile[0] * longMetersPerTile)
-
-  maxXMeters = 0
-  if args.eastlong > 0
-    maxXMeters = (XMAX - XMIN)/2 + (netile[0] * longMetersPerTile) + longMetersPerTile
-  else if args.eastlong <= 0
-    maxXMeters = 0 - (XMAX - XMIN)/2 + (netile[0] * longMetersPerTile) + longMetersPerTile
-
-  maxYMeters = 0
-  if args.northlat > 0
-    maxYMeters = YMAX - (nwtile[1] * latMetersPerTile)
-  else
-    maxYMeters = 0 - (nwtile[1] * latMetersPerTile)
-
-  minYMeters = 0
-  if args.southlat > 0
-    minYMeters = YMAX - (swtile[1] * latMetersPerTile) - latMetersPerTile
-  else
-    minYMeters = 0 - (swtile[1] * latMetersPerTile) - latMetersPerTile
-
   for xtile in [nwtile[0]..netile[0]]
     for ytile in [nwtile[1]..swtile[1]]
-      bbox = boundingBoxForTile nwtile[0], nwtile[1], zoomLevel
-      console.log "Bounding Box for tile #{xtile}, #{ytile}:", bbox
+      queue.push {xtile: xtile, ytile:ytile, zoomLevel:zoomLevel}, (err) ->
+        if err
+          console.log err
+          process.exit()
 
-      uri = args.mapservice
-      uri = uri + "?bbox=#{bbox[0]},#{bbox[1]},#{bbox[2]},#{bbox[3]}"
-      uri = uri + "&bboxSR=3857&layers=3&size=256,256&imageSR=3857"
-      uri = uri + "&format=png&transparent=false&dpi=96&f=image"
-      console.log uri
-
-
-
-  
 
   zoomLevel = zoomLevel += 1
 
