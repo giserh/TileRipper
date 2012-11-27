@@ -1,7 +1,8 @@
 _ = require 'underscore'
 async = require 'async'
+request = require 'request'
 ArgumentParser = require('argparse').ArgumentParser
-url = require 'url'
+fs = require 'fs'
 
 EARTHRADIUS = 6378137
 MINLATITUDE = -85.05112878
@@ -147,8 +148,10 @@ args.maxzoom = parseInt args.maxzoom
 
 zoomLevel = args.minzoom
 totalTiles = 0
+fs.mkdirSync "./test"
 while zoomLevel <= args.maxzoom
   console.log "Calculating level #{zoomLevel}"
+  fs.mkdirSync "./test/#{zoomLevel}"
 
   nw = latLongToPixelXY args.northlat, args.westlong,  zoomLevel
   ne = latLongToPixelXY args.northlat, args.eastlong,  zoomLevel
@@ -177,7 +180,10 @@ queue = async.queue (task, callback) ->
     uri = uri + "?bbox=#{bbox[0]},#{bbox[1]},#{bbox[2]},#{bbox[3]}"
     uri = uri + "&bboxSR=3857&layers=3&size=256,256&imageSR=3857"
     uri = uri + "&format=png&transparent=false&dpi=96&f=image"
-    console.log uri
+    #console.log uri
+    path = "./test/#{task.zoomLevel}/#{task.xtile}/#{task.ytile}.png"
+    console.log path
+    request(uri).pipe(fs.createWriteStream(path))
     callback()
   , args.concurrentops
 
@@ -198,6 +204,7 @@ while zoomLevel <= args.maxzoom
   setile = pixelXYToTileXY se[0], se[1]
 
   for xtile in [nwtile[0]..netile[0]]
+    fs.mkdirSync "./test/#{zoomLevel}/#{xtile}"
     for ytile in [nwtile[1]..swtile[1]]
       queue.push {xtile: xtile, ytile:ytile, zoomLevel:zoomLevel}, (err) ->
         if err
