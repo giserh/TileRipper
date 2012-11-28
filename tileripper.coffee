@@ -10,9 +10,11 @@ MAXLATITUDE = 85.05112878
 MINLONGITUDE = -180
 MAXLONGITUDE = 180
 XMIN = -20037507.0671618
-YMIN = -19971868.8804086
+#YMIN = -19971868.8804086
 XMAX = 20037507.0671618
-YMAX = 19971868.8804086
+#YMAX = 19971868.8804086
+YMIN = XMIN
+YMAX = XMAX
 
 mapSize = (levelOfDetail) ->
   256 << levelOfDetail
@@ -80,8 +82,8 @@ pixelXYToLatLong = (pixelX, pixelY, levelOfDetail) ->
 # /// <param name="tileX">Output parameter receiving the tile X coordinate.</param>
 # /// <param name="tileY">Output parameter receiving the tile Y coordinate.</param>
 pixelXYToTileXY = (pixelX, pixelY) ->
-  tileX = Math.floor pixelX / 256
-  tileY = Math.floor pixelY / 256
+  tileX = Math.floor (pixelX / 256)
+  tileY = Math.floor (pixelY / 256)
   [tileX, tileY]
 
 # /// <summary>
@@ -93,8 +95,8 @@ pixelXYToTileXY = (pixelX, pixelY) ->
 # /// <param name="pixelX">Output parameter receiving the pixel X coordinate.</param>
 # /// <param name="pixelY">Output parameter receiving the pixel Y coordinate.</param>
 tileXYToPixelXY = (tileX, tileY) ->
-  pixelX = Math.floor tileX * 256
-  pixelY = Math.floor tileY * 256
+  pixelX = Math.floor (tileX * 256)
+  pixelY = Math.floor (tileY * 256)
   [pixelX, pixelY]
 
 # Returns [xmin, ymin, xmax, ymax]
@@ -104,19 +106,11 @@ boundingBoxForTile = (tileX, tileY, levelOfDetail) ->
   latMetersPerTile = (YMAX - YMIN) / (2 << (levelOfDetail-1))
   tileAxis = (2 << (levelOfDetail-1))
 
-  if tileX > tileAxis / 2
-    minXMeters = (XMAX - XMIN) /2 + (tileX * longMetersPerTile)
-    maxXMeters = (XMAX - XMIN)/2 + (tileX * longMetersPerTile) + longMetersPerTile
-  else
-    maxXMeters = 0 - (XMAX - XMIN)/2 + (tileX * longMetersPerTile) + longMetersPerTile
-    minXMeters = 0 - (XMAX - XMIN)/2 + (tileX * longMetersPerTile)
+  minXMeters = XMIN + (tileX * longMetersPerTile)
+  maxXMeters = XMIN + (tileX * longMetersPerTile) + longMetersPerTile
 
-  if tileY < tileAxis / 2
-    maxYMeters = YMAX - (tileY * latMetersPerTile)
-    minYMeters = YMAX - (tileY * latMetersPerTile) - latMetersPerTile
-  else
-    minYMeters = 0 - (tileY * latMetersPerTile) - latMetersPerTile
-    maxYMeters = 0 - (tileY * latMetersPerTile)
+  maxYMeters = YMAX - (tileY * latMetersPerTile)
+  minYMeters = YMAX - (tileY * latMetersPerTile) - latMetersPerTile
 
   [minXMeters, minYMeters, maxXMeters, maxYMeters]
 
@@ -183,8 +177,12 @@ queue = async.queue (task, callback) ->
     #console.log uri
     path = "./test/#{task.zoomLevel}/#{task.xtile}/#{task.ytile}.png"
     console.log path
-    request(uri).pipe(fs.createWriteStream(path))
-    callback()
+    r = request(uri)
+    r.on "end", () ->
+      console.log "End called"
+      callback()
+    r.pipe(fs.createWriteStream(path))
+
   , args.concurrentops
 
 queue.drain = () ->
