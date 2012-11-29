@@ -10,9 +10,7 @@ MAXLATITUDE = 85.05112878
 MINLONGITUDE = -180
 MAXLONGITUDE = 180
 XMIN = -20037507.0671618
-#YMIN = -19971868.8804086
 XMAX = 20037507.0671618
-#YMAX = 19971868.8804086
 YMIN = XMIN
 YMAX = XMAX
 
@@ -115,13 +113,32 @@ boundingBoxForTile = (tileX, tileY, levelOfDetail) ->
   [minXMeters, minYMeters, maxXMeters, maxYMeters]
 
 
+checkOutputDirectory = (path, resume) ->
+  if fs.existsSync path
+    if resume
+      console.log "Resuming tiling into #{path}"
+    else
+      console.log "Output directory #{path} already exists; refusing to overwrite!"
+      process.exit()
+  else
+    if resume 
+      console.log "Warning: you have chosen to resume a tilong operation, but your output directory doesn't exist."
+    try
+      fs.mkdirSync path
+    catch e
+      console.log "Couldn't create an output directory at #{path}: ", e
+      process.exit()    
+
+
+
 parser = new ArgumentParser
   version: '0.0.1'
   addHelp:true
-  description: 'Argparse example'
+  description: 'TileRipper - grab Web Mercator tiles from an ESRI Dynamic Map Service'
 
 parser.addArgument [ '-m', '--mapservice' ], { help: 'Url of the ArcGIS Dynamic Map Service to be cached', metavar: "MAPSERVICEURL", required: true }
 parser.addArgument [ '-o', '--output' ], { help: 'Location of generated tile cache', metavar: "OUTPUTFILE", required: true}
+parser.addArgument [ '-r', '--resume'] , {help: "Resume ripping or add tiles to an existing tile directory", nargs : 0}
 parser.addArgument [ '-z', '--minzoom' ], { help: 'Minimum zoom level to cache', metavar: "ZOOMLEVEL", defaultValue: 1 }
 parser.addArgument [ '-Z', '--maxzoom' ], { help: 'Maximum zoom level to cache', metavar: "ZOOMLEVEL" , defaultValue: 23}
 parser.addArgument [ '-x', '--westlong' ], { help: 'Westernmost decimal longitude', metavar: "LONGITUDE", required: true }
@@ -129,9 +146,9 @@ parser.addArgument [ '-X', '--eastlong' ], { help: 'Easternmost decimal longitud
 parser.addArgument [ '-y', '--southlat' ], { help: 'Southernmost decimal latitude', metavar: "LATITUDE", required: true }
 parser.addArgument [ '-Y', '--northlat' ], { help: 'Northernmost decimal latitude', metavar: "LATITUDE", required: true }
 parser.addArgument [ '-c', '--concurrentops' ], { help: 'Max number of concurrent tile requests', metavar: "REQUESTS", defaultValue: 8 }
+parser.addArgument [ '-n', '--noripping' ], { help: "Skip the actual ripping of tiles; just do the tile analysis and report", nargs: 0}
 
 args = parser.parseArgs()
-console.log args
 
 args.westlong = parseFloat args.westlong
 args.eastlong = parseFloat args.eastlong
@@ -139,13 +156,13 @@ args.northlat = parseFloat args.northlat
 args.southlat = parseFloat args.southlat
 args.minzoom = parseInt args.minzoom
 args.maxzoom = parseInt args.maxzoom
+if args.resume then console.log "Resuming tiling operation"
 
 zoomLevel = args.minzoom
 totalTiles = 0
-fs.mkdirSync "./test"
+missingTiles = 0
 while zoomLevel <= args.maxzoom
   console.log "Calculating level #{zoomLevel}"
-  fs.mkdirSync "./test/#{zoomLevel}"
 
   nw = latLongToPixelXY args.northlat, args.westlong,  zoomLevel
   ne = latLongToPixelXY args.northlat, args.eastlong,  zoomLevel
@@ -159,27 +176,34 @@ while zoomLevel <= args.maxzoom
 
   ntiles = (setile[0] - nwtile[0] + 1) * (setile[1] - nwtile[1] + 1)
   totalTiles += ntiles
-  console.log ntiles 
+
+  if args.resume
+    for xtile in [nwtile[0]..netile[0]]
+      for ytile in [nwtile[1]..swtile[1]]
+        if not fs.existsSync "#{args.output}/#{zoomLevel}/#{xtile}/#{ytile}.png" then missingTiles += 1
 
   zoomLevel = zoomLevel += 1
 
-console.log "Total Tiles: #{totalTiles}"
+if args.resume then console.log "Total tiles for cache: #{totalTiles} Number missing from cache: #{missingTiles}"
+else console.log "Total tiles to rip: #{missingTiles}"
 
+if args.noripping then process.exit()
+if missingTiles <= 0 then process.exit()
 
-
+checkOutputDirectory args.output, args.resume
 
 queue = async.queue (task, callback) ->
     bbox = boundingBoxForTile task.xtile, task.ytile, task.zoomLevel
     uri = args.mapservice
     uri = uri + "?bbox=#{bbox[0]},#{bbox[1]},#{bbox[2]},#{bbox[3]}"
     uri = uri + "&bboxSR=3857&layers=3&size=256,256&imageSR=3857"
-    uri = uri + "&format=png&transparent=false&dpi=96&f=image"
+    uri = uri + "&format=png8&transparent=false&dpi=96&f=image"
     #console.log uri
-    path = "./test/#{task.zoomLevel}/#{task.xtile}/#{task.ytile}.png"
-    console.log path
+    path = "#{args.output}/#{task.zoomLevel}/#{task.xtile}/#{task.ytile}.png"
+    #console.log path
     r = request(uri)
     r.on "end", () ->
-      console.log "End called"
+      #console.log "End called"
       callback()
     r.pipe(fs.createWriteStream(path))
 
@@ -191,6 +215,8 @@ queue.drain = () ->
 zoomLevel = args.minzoom
 while zoomLevel <= args.maxzoom
   console.log "Tiling level #{zoomLevel}"
+  fs.mkdirSync "#{args.output}/#{zoomLevel}"
+
 
   nw = latLongToPixelXY args.northlat, args.westlong,  zoomLevel
   ne = latLongToPixelXY args.northlat, args.eastlong,  zoomLevel
@@ -202,7 +228,7 @@ while zoomLevel <= args.maxzoom
   setile = pixelXYToTileXY se[0], se[1]
 
   for xtile in [nwtile[0]..netile[0]]
-    fs.mkdirSync "./test/#{zoomLevel}/#{xtile}"
+    fs.mkdirSync "#{args.output}/#{zoomLevel}/#{xtile}"
     for ytile in [nwtile[1]..swtile[1]]
       queue.push {xtile: xtile, ytile:ytile, zoomLevel:zoomLevel}, (err) ->
         if err
@@ -211,14 +237,3 @@ while zoomLevel <= args.maxzoom
 
 
   zoomLevel = zoomLevel += 1
-
-
-  
-
-
-
-
-
-
-
-
