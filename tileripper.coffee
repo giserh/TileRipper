@@ -37,8 +37,6 @@ mapScale = (latitude, levelOfDetail, screenDpi) ->
 #         /// <param name="longitude">Longitude of the point, in degrees.</param>
 #         /// <param name="levelOfDetail">Level of detail, from 1 (lowest detail)
 #         /// to 23 (highest detail).</param>
-#         /// <param name="pixelX">Output parameter receiving the X coordinate in pixels.</param>
-#         /// <param name="pixelY">Output parameter receiving the Y coordinate in pixels.</param>
 #   Returns array [pixelx, pixely]
 latLongToPixelXY = (latitude, longitude, levelOfDetail) ->
   latitude = clip(latitude, MINLATITUDE, MAXLATITUDE)
@@ -77,8 +75,6 @@ pixelXYToLatLong = (pixelX, pixelY, levelOfDetail) ->
 # /// </summary>
 # /// <param name="pixelX">Pixel X coordinate.</param>
 # /// <param name="pixelY">Pixel Y coordinate.</param>
-# /// <param name="tileX">Output parameter receiving the tile X coordinate.</param>
-# /// <param name="tileY">Output parameter receiving the tile Y coordinate.</param>
 pixelXYToTileXY = (pixelX, pixelY) ->
   tileX = Math.floor (pixelX / 256)
   tileY = Math.floor (pixelY / 256)
@@ -90,8 +86,6 @@ pixelXYToTileXY = (pixelX, pixelY) ->
 # /// </summary>
 # /// <param name="tileX">Tile X coordinate.</param>
 # /// <param name="tileY">Tile Y coordinate.</param>
-# /// <param name="pixelX">Output parameter receiving the pixel X coordinate.</param>
-# /// <param name="pixelY">Output parameter receiving the pixel Y coordinate.</param>
 tileXYToPixelXY = (tileX, tileY) ->
   pixelX = Math.floor (tileX * 256)
   pixelY = Math.floor (tileY * 256)
@@ -137,6 +131,7 @@ parser = new ArgumentParser
   description: 'TileRipper - grab Web Mercator tiles from an ESRI Dynamic Map Service'
 
 parser.addArgument [ '-m', '--mapservice' ], { help: 'Url of the ArcGIS Dynamic Map Service to be cached', metavar: "MAPSERVICEURL", required: true }
+parser.addArgument [ '-l', '--layers'], {help: 'List of layers (in ESRI URL format) to capture: \"1,2,4\"', metavar: "LAYERSTRING", required: true }
 parser.addArgument [ '-o', '--output' ], { help: 'Location of generated tile cache', metavar: "OUTPUTFILE", required: true}
 parser.addArgument [ '-r', '--resume'] , {help: "Resume ripping or add tiles to an existing tile directory", nargs : 0}
 parser.addArgument [ '-z', '--minzoom' ], { help: 'Minimum zoom level to cache', metavar: "ZOOMLEVEL", defaultValue: 1 }
@@ -196,7 +191,7 @@ queue = async.queue (task, callback) ->
     bbox = boundingBoxForTile task.xtile, task.ytile, task.zoomLevel
     uri = args.mapservice
     uri = uri + "?bbox=#{bbox[0]},#{bbox[1]},#{bbox[2]},#{bbox[3]}"
-    uri = uri + "&bboxSR=3857&layers=3&size=256,256&imageSR=3857"
+    uri = uri + "&bboxSR=3857&layers=#{args.layers}&size=256,256&imageSR=3857"
     uri = uri + "&format=png8&transparent=false&dpi=96&f=image"
     #console.log uri
     path = "#{args.output}/#{task.zoomLevel}/#{task.xtile}/#{task.ytile}.png"
