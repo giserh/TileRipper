@@ -1,13 +1,14 @@
 TileRipper
 ==========
 
-grab Web Mercator tiles from an ESRI Dynamic Map Service
+grab Web Mercator tiles from an ESRI Dynamic or Image Map Service
 
+```
 Optional arguments:
   -h, --help            Show this help message and exit.
   -v, --version         Show program's version number and exit.
   -m MAPSERVICEURL, --mapservice MAPSERVICEURL
-                        Url of the ArcGIS Dynamic Map Service to be cached
+                        Url of the ArcGIS Dynamic/Image Map Service to be cached
   -o OUTPUTFILE, --output OUTPUTFILE
                         Location of generated tile cache
   -r, --resume          Resume ripping or add tiles to an existing tile 
@@ -28,9 +29,12 @@ Optional arguments:
                         Max number of concurrent tile requests
   -n, --noripping       Skip the actual ripping of tiles; just do the tile 
                         analysis and report
+  -l, --layerids        Ids of the sublayers to include in the tiles (default 
+                        is all)
+  ```
 
 
-TileRipper generates a map tile set from any available ESRI dynamic map service.  The resulting tile set directory can be converted into MBTiles format using MBUtil (https://github.com/mapbox/mbutil).
+TileRipper generates a map tile set from any available ESRI dynamic or image map service.  The resulting tile set directory can be converted into MBTiles format using MBUtil (https://github.com/mapbox/mbutil).
 
 Example:
 
