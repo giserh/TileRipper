@@ -1,10 +1,11 @@
 {
   "name": "TileRipper",
   "version": "0.0.1",
-  "dependencies": { 
+  "dependencies": {
     "argparse": ">= 0.1.7",
-    "underscore": ">= 1.4.2",
-    "async":  ">= 0.1.22",
-    "request": "latest"
+    "async": ">= 0.1.22",
+    "progress": "^1.1.8",
+    "request": "latest",
+    "underscore": ">= 1.4.2"
   }
 }
