@@ -2,6 +2,7 @@
   "name": "TileRipper",
   "version": "0.0.1",
   "dependencies": {
+    "archiver": "^0.14.3",
     "argparse": ">= 0.1.7",
     "async": ">= 0.1.22",
     "progress": "^1.1.8",
