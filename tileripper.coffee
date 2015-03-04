@@ -128,7 +128,7 @@ mapserviceType = null
 parser = new ArgumentParser
   version: '0.0.2'
   addHelp:true
-  description: 'TileRipper - grab Web Mercator tiles from an ESRI Dynamic Map Service'
+  description: 'TileRipper - grab Web Mercator tiles from an ESRI Dynamic Map  or Image Service'
 
 parser.addArgument [ '-m', '--mapservice' ], { help: 'Url of the ArcGIS Dynamic Map Service to be cached', metavar: "MAPSERVICEURL", required: true }
 parser.addArgument [ '-o', '--output' ], { help: 'Location of generated tile cache', metavar: "OUTPUTFILE", required: true}
@@ -142,6 +142,8 @@ parser.addArgument [ '-Y', '--northlat' ], { help: 'Northernmost decimal latitud
 parser.addArgument [ '-c', '--concurrentops' ], { help: 'Max number of concurrent tile requests (default is 8)', metavar: "REQUESTS", defaultValue: 8 }
 parser.addArgument [ '-n', '--noripping' ], { help: "Skip the actual ripping of tiles; just do the tile analysis and report", nargs: 0, defaultValue: false, action: 'storeTrue'}
 parser.addArgument [ '-l', '--layerids'], {help: "Ids of the sublayers to include in the tiles (default is all}", defaultValue: 'all'}
+parser.addArgument [ '-p', '--package'] , {help: "Create a zipped archive of mbtiles and JSON metadata", nargs : 0, defaultValue: false, action: 'storeTrue'}
+
 
 args = parser.parseArgs()
 
@@ -166,6 +168,8 @@ if args.resume then console.log "Resuming tiling operation"
 unless (args.layerids is 'all') 
   ArgumentChecker.checkLayerIds args.layerids
 ArgumentChecker.checkLongitude args.westlong, args.eastlong
+if args.package
+  ArgumentChecker.checkForArchivingTools()
 
 
 zoomLevel = args.minzoom
@@ -212,7 +216,7 @@ bar = new ProgressBar('   Downloading tiles [:bar] :percent estimated time remai
 uri = args.mapservice
 if mapserviceType is 'dynamic'
   uri = uri + '/export'
-else if mapserviceType is 'image'
+else if mapserviceType is 'image'git commi
   uri = uri + '/exportImage'
 queue = async.queue (task, callback) ->
     bbox = boundingBoxForTile task.xtile, task.ytile, task.zoomLevel
