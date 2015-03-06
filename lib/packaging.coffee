@@ -2,6 +2,7 @@ ChildProcess = require 'child_process'
 Archiver = require 'archiver'
 fs = require 'fs'
 
+
 _build_json_metadata = (args, type, version, ntiles) ->
 	json = {}
 	json.time = new Date()
@@ -15,6 +16,7 @@ _build_json_metadata = (args, type, version, ntiles) ->
 	json.mapServiceType = type
 	json.tileRipperVersion = version
 	json.nTiles = ntiles
+	json.commandLine = process.argv.toString().replace /,/g, ' '
 	json
 
 

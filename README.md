@@ -1,7 +1,7 @@
 TileRipper
 ==========
 
-grab Web Mercator tiles from an ESRI Dynamic or Image Map Service
+grab Web Mercator tiles from an ESRI Dynamic, Image or Tiled Map Service
 
 ```
 Optional arguments:
@@ -31,11 +31,12 @@ Optional arguments:
                         analysis and report
   -l, --layerids        Ids of the sublayers to include in the tiles (default 
                         is all)
+  -p, --package         Create a ZIP package of tile data and metadata
   ```
 
 
-TileRipper generates a map tile set from any available ESRI dynamic or image map service.  The resulting tile set directory can be converted into MBTiles format using MBUtil (https://github.com/mapbox/mbutil).
+TileRipper generates a map tile set from any available ESRI dynamic, image, or tiled map service.  It doesn't work for ESRI feature services, since they serve vector and not raster data.  The resulting tile set directory can be converted into MBTiles format using MBUtil (https://github.com/mapbox/mbutil), or if you use the packaging option (-p), TileRipper will attempt to package the tiles into a MBTiles file for you.  
 
 Example:
 
- ```coffee -- tileripper.coffee -m http://egisws02.nos.noaa.gov/ArcGIS/rest/services/RNC/NOAA_RNC/MapServer/3 -n -o tiledir -x -125.0 -X -119.0 -y 33.0 -Y 40.0 -z 0 -Z 1```
+ ```coffee -- tileripper.coffee -m http://egisws02.nos.noaa.gov/ArcGIS/rest/services/RNC/NOAA_RNC/MapServer -n -o tiledir -x -125.0 -X -119.0 -y 33.0 -Y 40.0 -z 0 -Z 1```
