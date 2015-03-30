@@ -208,7 +208,9 @@ request.get args.mapservice + '?f=json', (err, response, body) ->
   else console.log "Total tiles to rip: #{totalTiles}"
 
   if args.noripping then process.exit()
-  if args.resume and (missingTiles <= 0) then process.exit()
+  if args.resume and (missingTiles <= 0)
+    if args.package then require('./lib/packaging').packageTiles args, mapserviceType, trversion, totalTiles, () -> process.exit()
+    else process.exit()
 
   checkOutputDirectory args.output, args.resume
 

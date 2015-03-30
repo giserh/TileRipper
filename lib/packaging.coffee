@@ -21,13 +21,25 @@ _build_json_metadata = (args, type, version, ntiles) ->
 
 
 _build_mbtiles_file = (input_dir, output_filename, cb) ->
-	child = ChildProcess.exec "mb-util #{input_dir} #{output_filename}", (err, stdout, stderr) ->
-		if err then throw new Error("Could not convert raw tiles to a .mbtiles file: #{err.message}")
-		cb output_filename
+
+	fs.unlink output_filename, (err) ->
+		if err then return cb err
+		child = ChildProcess.spawn "mb-util", [input_dir, output_filename], {}
+
+		child.stdout.on 'data', (buf) ->
+			console.log buf.toString()
 
 
+		child.stderr.on 'data', (buf) ->
+			console.log buf.toString()
 
-module.exports.packageTiles = (args, type, version, ntiles) ->
+		child.on 'close', (code) ->
+			console.log "mb-util exited with code #{code}"
+			if code then throw new Error("Could not convert raw tiles to a .mbtiles file: #{code}")
+			else return cb output_filename
+	
+
+module.exports.packageTiles = (args, type, version, ntiles, cb) ->
 	console.log "Packaging tiles & metadata..."
 	metadata = _build_json_metadata args, type, version, ntiles
 	prefix = "tiles_" + new Date().getTime()
@@ -39,6 +51,7 @@ module.exports.packageTiles = (args, type, version, ntiles) ->
 		archiver.file mbtiles_filename, {name: "#{prefix}/data.mbtiles"}
 		archiver.pipe fs.createWriteStream(prefix + '.zip')
 		archiver.finalize()
+		cb()
 
 
 
