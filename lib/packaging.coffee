@@ -35,7 +35,7 @@ _build_mbtiles_file = (input_dir, output_filename, cb) ->
 
 		child.on 'close', (code) ->
 			console.log "mb-util exited with code #{code}"
-			if code then throw new Error("Could not convert raw tiles to a .mbtiles file: #{code}")
+			if not (code is 0) then throw new Error("Could not convert raw tiles to a .mbtiles file: #{code}")
 			else return cb output_filename
 	
 
@@ -47,15 +47,19 @@ module.exports.packageTiles = (args, type, version, ntiles, cb) ->
 	_build_mbtiles_file args.output, 'data.mbtiles', (mbtiles_filename) ->
 
 		archiver = Archiver.create('zip')
-		archiver.append JSON.stringify(metadata, null, 4), {name: "#{prefix}/metadata.json"}
-		archiver.file mbtiles_filename, {name: "#{prefix}/data.mbtiles"}
-		archiver.pipe fs.createWriteStream(prefix + '.zip')
+		zipstream = archiver.pipe fs.createWriteStream(prefix + '.zip')
+		archiver.append JSON.stringify(metadata, null, 4), {name: "metadata.json"}
+		archiver.file mbtiles_filename, {name: "data.mbtiles"}
 		archiver.finalize()
-		cb()
+		
+		zipstream.on 'end', () ->
+			console.log "Packaging complete."
+			cb()
 
 
 
-	console.log "Packaging complete."
+
+	
 
 
 
