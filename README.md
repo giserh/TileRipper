@@ -1,7 +1,7 @@
 TileRipper
 ==========
 
-grab Web Mercator tiles from an ESRI Dynamic, Image or Tiled Map Service
+build a cache of Web Mercator tiles from an ESRI Dynamic, Image or Tiled Map Service
 
 ```
 Optional arguments:
@@ -35,7 +35,9 @@ Optional arguments:
   ```
 
 
-TileRipper generates a map tile set from any available ESRI dynamic, image, or tiled map service.  It doesn't work for ESRI feature services, since they serve vector and not raster data.  The resulting tile set directory can be converted into MBTiles format using MBUtil (https://github.com/mapbox/mbutil), or if you use the packaging option (-p), TileRipper will attempt to package the tiles into a MBTiles file for you.  
+TileRipper generates a map tile set from any available ESRI dynamic, image, or tiled map service.  Using this utility, you can build up a tile cache for map services (and thus geospatial data) you don't control.  One potential use case is building a cache of tiles from a USGS or NOAA public map service to bundle with an offline mobile application.  TileRipper doesn't work for ESRI feature services, since they serve vector and not raster data, and TileRipper does no rendering.
+
+The resulting tile set directory can be converted into MBTiles format using MBUtil (https://github.com/mapbox/mbutil), or if you use the packaging option (-p), TileRipper will attempt to package the tiles into a MBTiles file for you.  
 
 Example:
 
